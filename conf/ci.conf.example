@@ -1,0 +1,62 @@
+server {
+
+    listen 80;
+    listen [::]:80;
+
+    server_name ci.test;
+    root /var/www/ci;
+    index index.php index.html index.htm;
+	error_log /var/www/laradock/logs/nginx/ci_error.log;
+
+	location ~* \.(?:jpg|jpeg|gif|png|ico|cur|gz|svg|svgz|mp3|mp4|ogg|ogv|webm|htc|webp)$ {
+		# Uncomment these lines if you want to serve up a placeholder image for 404s
+		# for static assets:
+		# error_page 404 /img/placeholder-image.png;
+		# try_files $uri =404;
+		etag off;
+		expires 1M;
+		access_log off;
+		add_header Cache-Control "public";
+	}
+
+	# CSS and Javascript
+	location ~* \.(?:css|js)$ {
+		etag off;
+		expires 1y;
+		access_log off;
+		add_header Cache-Control "public";
+	}
+
+	# WebFonts
+	location ~* \.(?:ttf|ttc|otf|eot|woff|woff2)$ {
+		etag off;
+		add_header "Access-Control-Allow-Origin" "*";
+		expires 1M;
+		access_log off;
+		add_header Cache-Control "public";
+	 }
+	
+    location / {
+         try_files $uri $uri/ /index.php$is_args$args;
+    }
+
+    location ~ \.php$ {
+        try_files $uri /index.php =404;
+        fastcgi_pass php-upstream;
+        fastcgi_index index.php;
+        fastcgi_buffers 16 16k;
+        fastcgi_buffer_size 32k;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    # Deny for accessing .htaccess files for Nginx
+	location ~ /\.ht {
+            deny all;
+    }
+	
+	# Deny for accessing codes
+	location ~ ^/(application|system|tests)/ {
+		return 403;
+	}
+}
